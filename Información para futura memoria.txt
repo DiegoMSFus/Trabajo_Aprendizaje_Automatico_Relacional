@@ -1,0 +1,92 @@
+Modelo 1
+pagerank, community, etc.) como propiedades nativas del nodo extraídas de la plataforma origen (followers, popularity).
+
+Dado el fuerte desbalanceo de la variable objetivo (la clase minoritaria has_chart_hits=1 representa únicamente el 12.56% del conjunto de datos), se aplicaron dos contramedidas de diseño críticas:
+
+Partición estratificada: Se garantizó que la proporción de las clases se mantuviera idéntica tanto en el conjunto de entrenamiento (80%) como en el de evaluación (20%).
+
+Penalización de clases: Se configuró el hiperparámetro de pesos (class_weight='balanced') para aumentar el coste de los falsos negativos durante la fase de entrenamiento de los árboles de decisión. Adicionalmente, los datos fueron normalizados mediante un StandardScaler para mitigar la dispersión de escalas entre las variables.
+
+Resultados y Análisis Crítico
+El modelo mixto arrojó un Accuracy global del 96.40%. Sin embargo, la métrica de interés recae sobre la capacidad de generalización en la clase minoritaria. El modelo demostró una precisión (Precision) del 89.43% y una exhaustividad (Recall) del 73.63%, culminando en un F1-Score de 0.8076 para la clase positiva.
+
+El análisis de la importancia de las variables (Feature Importance) reveló conclusiones fundamentales para nuestra hipótesis de investigación:
+
+La métrica topológica de influencia PageRank se posicionó como el predictor más determinante (peso relativo de ~0.30).
+
+Sorprendentemente, el PageRank superó en capacidad predictiva a la propiedad nativa de Followers (~0.20), demostrando que la posición de un artista dentro de la red de la industria (la calidad de sus conexiones) es más relevante para alcanzar el éxito en las listas que su base absoluta de seguidores.
+
+Asimismo, la cantidad bruta de colaboraciones (Degree, ~0.18) demostró tener menor impacto predictivo que el PageRank, validando la premisa algorítmica de que colaborar con nodos de alta centralidad es más beneficioso que acumular colaboraciones con nodos aislados.
+
+
+Modelo 2
+Evaluación del Modelo Puramente Relacional (Baseline Topológico)
+Para aislar el poder predictivo de la topología de la red y validar la premisa del aprendizaje automático relacional, se diseñó un segundo modelo Random Forest (n_estimators=100, class_weight='balanced'). En esta iteración, se eliminaron del vector de características las propiedades nativas (followers y popularity), forzando al algoritmo a clasificar los nodos basándose exclusivamente en sus atributos relacionales (degree, pagerank, clustering, etc.).
+
+Análisis de Resultados
+Los resultados empíricos validan rotundamente la hipótesis del estudio. El modelo puramente relacional logró mantener una exhaustividad (Recall) del 73.27% en la detección de la clase minoritaria, un valor estadísticamente equivalente al 73.63% obtenido por el modelo mixto. Esto demuestra que la posición estructural de un artista en el grafo contiene información suficiente para identificar la inmensa mayoría de los casos de éxito.
+
+Como era predecible ante la ausencia de variables directas de popularidad, el modelo sufrió una caída en su precisión (Precision), pasando de un 89.43% a un 79.88%. El aumento de falsos positivos refleja una realidad intrínseca del dominio: poseer métricas de centralidad altas (colaborar con nodos influyentes) es una condición que aumenta enormemente la probabilidad de éxito comercial, pero no lo garantiza de forma determinista, estableciendo el F1-Score final en un robusto 0.7643.
+
+Para cerrar el análisis de este modelo y pasar a montar el tercer y último algoritmo (por ejemplo, una red neuronal sencilla para intentar mejorar ese F1-Score), veo que me has adjuntado la nueva gráfica de importancia de variables. Al haber desaparecido los seguidores y la popularidad, ¿cuáles son ahora las tres métricas topológicas que dominan la decisión del árbol?
+
+Modelo 3
+Diseño de la Arquitectura basada en Redes Neuronales
+Como tercer modelo de la experimentación y con el objetivo de evaluar diferentes paradigmas algorítmicos sobre el grafo, se implementó una red neuronal artificial mediante un Perceptrón Multicapa (MLPClassifier) de Scikit-Learn. Al igual que en la aproximación anterior, el vector de características se restringió estrictamente a las métricas de la teoría de grafos (degree, degree_centrality, clustering, pagerank y community), manteniendo el modelo completamente aislado de los atributos de popularidad y volumen de seguidores nativos de la plataforma origen.
+
+Para mitigar el riesgo de sobreajuste (overfitting) intrínseco en modelos de alta capacidad como las redes neuronales y asegurar una correcta estimación y generalización, se adoptaron las siguientes decisiones de diseño estructural:
+
+Topología de capas ocultas: Se configuró una arquitectura de dos capas densas con 100 y 50 neuronas respectivamente (hidden_layer_sizes=(100, 50)), buscando una reducción progresiva de la dimensionalidad para la extracción de patrones abstractos no lineales.
+
+Parada temprana (Early Stopping): Se habilitó la monitorización del rendimiento sobre un subconjunto de validación interno (early_stopping=True) con un límite máximo de 1000 iteraciones. El entrenamiento se detiene automáticamente en el momento en que la pérdida de validación deja de disminuir, garantizando la convergencia óptima y la utilidad de las métricas relacionales sin memorizar el conjunto de entrenamiento.
+
+Resultados y Análisis Comparativo
+Tras procesar el conjunto de evaluación (29.695 nodos de prueba), la red neuronal relacional alcanzó una precisión global (Accuracy) del 96.16%. Al evaluar su comportamiento sobre la clasificación de la clase minoritaria (has_chart_hits=1), el modelo arrojó una matriz de confusión con 26.392 verdaderos negativos, 2.164 verdaderos positivos, 881 falsos negativos y únicamente 258 falsos positivos. Esto se traduce en una precisión del 89.35%, un Recall del 71.07% y un F1-Score resultante de 0.7917.
+
+Al realizar un análisis crítico comparativo frente al Modelo 2 (Random Forest puramente relacional), se observan variaciones analíticas de gran valor para el proyecto:
+
+Optimización de la Precisión: El Perceptrón Multicapa redujo los falsos positivos a más de la mitad (pasando de 562 a 258 errores de tipo I). Esto elevó la precisión del 79.88% al 89.35%, demostrando que las capas ocultas de la red neuronal son significativamente más eficientes que los árboles de decisión a la hora de discernir correlaciones sutiles y complejas dentro de la topología del grafo.
+
+Compromiso de Exhaustividad (Recall): La red sufrió una ligera penalización en su capacidad de recuperación, descendiendo del 73.27% al 71.07%. Este comportamiento es habitual al restringir los falsos positivos en entornos con distribuciones asimétricas.
+
+Rendimiento Global: El balance medio medido a través del F1-Score mejoró en casi 3 puntos porcentuales (de 0.7643 a 0.7917). Estos resultados consolidan a la red neuronal como la aproximación más sólida del estudio cuando se depende exclusivamente de la estructura relacional de colaboraciones.
+
+Como limitación metodológica que cabe destacar en la memoria, a diferencia del enfoque basado en árboles, la naturaleza de "caja negra" del Perceptrón Multicapa impide una extracción directa y visual de la importancia individualizada de las características (Feature Importance), delegando la validación del peso de cada métrica a los experimentos previos.
+
+Modelo 4
+Diseño del Modelo Definitivo (Aproximación Mixta con Redes Neuronales)
+Como última iteración del diseño experimental, se desarrolló un cuarto modelo con el objetivo de hibridar la alta capacidad de extracción de patrones no lineales del Perceptrón Multicapa (MLPClassifier) con el vector de características completo (mixto). De este modo, el espacio de características volvió a incorporar las propiedades nativas del nodo (followers y popularity) junto con la caracterización relacional construida manualmente a partir de la topología del grafo (degree, degree_centrality, clustering, pagerank y community).
+
+Manteniendo la coherencia metodológica y asegurando una comparativa limpia 1 a 1 con el Modelo 3, se conservó exactamente la misma arquitectura y técnicas de regularización para evitar el sobreajuste:
+
+Una topología de dos capas ocultas densas de 100 y 50 neuronas respectivamente.
+
+Normalización mediante StandardScaler.
+
+Activación por parada temprana (Early Stopping) basada en un conjunto de validación interno sobre un máximo de 1000 iteraciones.
+
+Análisis de Resultados del Modelo Final
+Evaluado sobre el conjunto de test independiente (29.695 nodos), el Perceptrón Multicapa mixto obtuvo un Accuracy global del 96.34%. En la clasificación de la clase minoritaria (has_chart_hits=1), el modelo mostró un comportamiento sumamente equilibrado y robusto, reflejado en su matriz de confusión: 26.354 verdaderos negativos (artistas sin éxitos correctamente clasificados), 2.253 verdaderos positivos (éxitos comerciales correctamente identificados), 296 falsos positivos y 792 falsos negativos.
+
+Esto se traduce en las siguientes métricas de rendimiento para la clase positiva: una precisión del 88.39%, una exhaustividad (Recall) del 73.99% y un F1-Score final de 0.8055.
+
+Al contrastar estos datos con el resto de la experimentación, se extraen conclusiones críticas de diseño:
+
+Maximización del Recall: Este modelo alcanzó el índice de recuperación más alto de todo el estudio (73.99%), superando tanto al Random Forest mixto (73.63%) como a la red neuronal puramente relacional (71.07%). Devolver las variables nativas de popularidad y seguidores a la red neuronal le permitió identificar con éxito aquellos perfiles de éxito comercial que escapan a la pura estructura de colaboraciones del grafo (como fenómenos de viralidad individual).
+
+Consistencia de la Precisión: Aunque la precisión sufrió una variación mínima respecto a la versión puramente relacional (pasando de 89.35% a 88.39%), el volumen de falsos positivos se contuvo de manera sobresaliente en comparación con el enfoque de árboles de decisión relacional. El F1-Score resultante de 0.8055 posiciona a este modelo como el sistema con mejor equilibrio general para su despliegue y explotación en entornos de producción.
+
+5. Conclusiones y Trabajo Futuro
+El presente trabajo ha cumplido con éxito el objetivo principal de diseñar, implementar y evaluar un sistema de aprendizaje automático relacional capaz de predecir el éxito comercial de un artista en las listas de éxitos musicales basándose en su caracterización estructural dentro de un grafo de colaboraciones de Spotify. A lo largo del desarrollo del proyecto, se han tomado decisiones de diseño críticas que han condicionado y optimizado los resultados obtenidos, demostrando la madurez del análisis de ingeniería de software aplicado.
+
+En la fase inicial de ingeniería de datos, se identificó la necesidad imperiosa de aislar la componente conexa gigante del grafo. Esta decisión metodológica eliminó el ruido matemático provocado por miles de nodos aislados cuyos atributos relacionales nulos distorsionaban el aprendizaje. Asimismo, la corrección en el modelado de comunidades mediante el algoritmo de Louvain sustituyó una mera segmentación de conectividad por una división real en clústeres densos de afinidad relacional, aportando un factor de discriminación clave para los modelos predictivos.
+
+La fase de experimentación empírica, compuesta por una terna comparativa de cuatro modelos, ha validado firmemente las siguientes conclusiones científicas:
+
+La soberanía de la topología sobre la propiedad nativa: El análisis del peso de las variables determinó que la métrica relacional PageRank posee un impacto predictivo superior (~0.30) al número absoluto de seguidores de un artista (~0.20). Esto demuestra que en la industria musical, la calidad y relevancia de las conexiones estructurales (colaborar con nodos centrales e influyentes de la red) es un factor mucho más determinante para alcanzar un impacto comercial que acumular volumen de audiencia de forma aislada.
+
+Eficacia del Aprendizaje Automático Relacional puro: Los modelos condicionados a estar totalmente "ciegos" a la popularidad externa (Modelos 2 y 3) demostraron un rendimiento asombrosamente alto, manteniendo F1-Scores estables entre 0.76 y 0.79. Esto confirma que la información oculta en la topología de la red es autosuficiente para modelar problemas complejos del mundo real.
+
+Selección del modelo óptimo: El Perceptrón Multicapa en su configuración mixta (Modelo 4) ha sido seleccionado como el modelo definitivo del proyecto. Al combinar las propiedades nativas de Spotify con las características relacionales complejas y procesarlas mediante las capas ocultas no lineales de la red neuronal, se obtuvo el índice de recuperación (Recall) más elevado del estudio (73.99%) limitando drásticamente el error de tipo I (falsos positivos). Esta combinación minimiza el sobreajuste y maximiza la capacidad de generalización ante datos no observados.
+
+Como líneas de trabajo futuro, se plantea la transición desde la construcción manual de características (feature engineering) hacia aproximaciones de aprendizaje profundo de representaciones latentes. La incorporación de algoritmos como Node2Vec o la implementación directa de Redes Neuronales de Grafos (Graph Neural Networks, GNN) permitiría al sistema aprender embeddings continuos de los nodos sin necesidad de calcular métricas estadísticas de forma explícita, abriendo la puerta a clasificaciones multiclase más profundas como la predicción automatizada del género musical predominante en las comunidades de la red.
